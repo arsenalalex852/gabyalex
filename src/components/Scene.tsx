@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from 'react'
+import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { WALL_SRC, WALL_RATIO, SHELF, PAINTING, PAINTING_ART, TABLE, MAP, FRAMES, PLANNER_FRAME, PLANNER_OPENING, PHOTOS, ZONES, Zone } from '../scene/sceneConfig'
 import Modal from './Modal'
@@ -26,6 +27,21 @@ export default function Scene({ coupleId, myId }: { coupleId: string; myId: stri
   const [map, setMap] = useState<Box>(MAP)
   const [frames, setFrames] = useState<Box>(FRAMES)
   const [planner, setPlanner] = useState<Box>(PLANNER_FRAME)
+  // who's currently on the page (live presence)
+  const [online, setOnline] = useState<{ alex: boolean; gaby: boolean }>({ alex: isAlex, gaby: !isAlex })
+  useEffect(() => {
+    const ch = supabase.channel(`presence:${coupleId}`, { config: { presence: { key: myId } } })
+    ch.on('presence', { event: 'sync' }, () => {
+      const state = ch.presenceState() as Record<string, { isAlex: boolean }[]>
+      let alex = false, gaby = false
+      Object.values(state).forEach((metas) => metas.forEach((m) => { if (m.isAlex) alex = true; else gaby = true }))
+      setOnline({ alex, gaby })
+    })
+    ch.subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') await ch.track({ isAlex })
+    })
+    return () => { supabase.removeChannel(ch) }
+  }, [coupleId, myId, isAlex])
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth < 760)
   useEffect(() => {
     const onR = () => setIsMobile(window.innerWidth < 760)
@@ -111,9 +127,12 @@ export default function Scene({ coupleId, myId }: { coupleId: string; myId: stri
   return (
     <>
       <div style={{ position: 'fixed', inset: 0, background: '#3a2a4d', padding: BORDER, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ position: 'absolute', top: BORDER + 8, left: BORDER + 10, display: 'flex', alignItems: 'center', zIndex: 60 }}>
-          <span style={{ width: 11, height: 11, borderRadius: 999, background: '#4a7fd6', boxShadow: '0 0 10px #4a7fd6', display: 'inline-block' }} />
-          <span style={{ width: 11, height: 11, borderRadius: 999, background: '#d6443f', boxShadow: '0 0 10px #d6443f', display: 'inline-block', marginLeft: -3 }} />
+        <div style={{ position: 'absolute', top: BORDER + 8, left: BORDER + 10, display: 'flex', alignItems: 'center', zIndex: 60 }}
+          title={`${online.alex ? 'Alex' : ''}${online.alex && online.gaby ? ' & ' : ''}${online.gaby ? 'Gaby' : ''}${online.alex || online.gaby ? ' here now' : ''}`}>
+          <span style={{ width: 11, height: 11, borderRadius: 999, background: '#4a7fd6', display: 'inline-block',
+            boxShadow: online.alex ? '0 0 10px 2px #4a7fd6' : 'none', opacity: online.alex ? 1 : 0.25, transition: 'opacity .4s, box-shadow .4s' }} />
+          <span style={{ width: 11, height: 11, borderRadius: 999, background: '#d6443f', display: 'inline-block', marginLeft: -3,
+            boxShadow: online.gaby ? '0 0 10px 2px #d6443f' : 'none', opacity: online.gaby ? 1 : 0.25, transition: 'opacity .4s, box-shadow .4s' }} />
         </div>
 
         <div ref={stageRef} onPointerMove={onMove} onPointerUp={() => setDrag(null)} onPointerLeave={() => setDrag(null)}

@@ -32,30 +32,43 @@ export default function Mailbox({ coupleId, myId }: { coupleId: string; myId: st
 
   return (
     <Tile title="Mailbox" accent="#f4a6c0">
-      <div className="flex gap-2 mb-3">
-        <input
-          className="flex-1 rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-cream text-sm outline-none focus:border-lamp"
-          placeholder="leave a little note…"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && send()}
+      <div className="relative">
+        {/* faint photo of us behind the whole chat */}
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute', inset: -12, borderRadius: 16, overflow: 'hidden', pointerEvents: 'none',
+            backgroundImage: 'url(/us.jpg)', backgroundSize: 'cover', backgroundPosition: 'center',
+            opacity: 0.14,
+          }}
         />
-        <button onClick={send} className="rounded-lg bg-lamp text-[#3a1f2e] font-semibold px-3 text-sm">send</button>
-      </div>
-      <div className="flex flex-col gap-2 max-h-44 overflow-y-auto">
-        {notes.length === 0 && <span className="text-muted">no notes yet — send the first one 💌</span>}
-        {notes.map((n) => {
-          const mine = n.author_id === myId
-          return (
-            <div
-              key={n.id}
-              className={`rounded-xl px-3 py-2 text-sm ${mine ? 'bg-white/5 self-end' : 'bg-her/15 self-start'}`}
-            >
-              <div className="text-[10px] text-muted mb-0.5">{mine ? 'you' : 'them'}</div>
-              {n.body}
-            </div>
-          )
-        })}
+        <div className="relative">
+          <div className="flex gap-2 mb-3">
+            <input
+              className="flex-1 rounded-lg bg-black/20 border border-white/10 px-3 py-2 text-cream text-sm outline-none focus:border-lamp backdrop-blur-sm"
+              placeholder="leave a little note…"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && send()}
+            />
+            <button onClick={send} className="rounded-lg bg-lamp text-[#3a1f2e] font-semibold px-3 text-sm">send</button>
+          </div>
+          <div className="flex flex-col gap-2 max-h-44 overflow-y-auto">
+            {notes.length === 0 && <span className="text-muted">no notes yet — send the first one 💌</span>}
+            {notes.map((n) => {
+              const mine = n.author_id === myId
+              return (
+                <div
+                  key={n.id}
+                  className={`rounded-xl px-3 py-2 text-sm backdrop-blur-sm ${mine ? 'bg-black/25 self-end' : 'bg-her/25 self-start'}`}
+                >
+                  <div className="text-[10px] text-muted mb-0.5">{mine ? 'you' : 'them'}</div>
+                  {n.body}
+                </div>
+              )
+            })}
+          </div>
+        </div>
       </div>
     </Tile>
   )

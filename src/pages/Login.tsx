@@ -28,12 +28,10 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-sm rounded-3xl border border-white/10 bg-black/30 backdrop-blur p-8">
-        <div className="flex items-center gap-2 mb-1">
+        <div className="flex items-center gap-2 mb-6">
           <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#4a7fd6', boxShadow: '0 0 10px #4a7fd6' }} />
           <span className="w-2.5 h-2.5 rounded-full -ml-1" style={{ background: '#d6443f', boxShadow: '0 0 10px #d6443f' }} />
-          <span className="text-cream font-bold tracking-wide ml-1">gabyalex</span>
         </div>
-        <p className="text-muted text-sm mb-6">a little place that’s just ours.</p>
 
         <input
           className="w-full mb-3 rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-cream placeholder:text-muted outline-none focus:border-lamp"

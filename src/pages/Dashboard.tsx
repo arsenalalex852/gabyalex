@@ -2,9 +2,18 @@ import { useAuth } from '../context/AuthContext'
 import Scene from '../components/Scene'
 
 export default function Dashboard() {
-  const { profile } = useAuth()
+  const { profile, loading } = useAuth()
   const coupleId = profile?.couple_id ?? null
   const myId = profile?.id ?? ''
+
+  // still loading the profile — don't flash the warning prematurely
+  if (loading || (profile === null)) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="text-muted">
+        loading…
+      </div>
+    )
+  }
 
   if (!coupleId) {
     return (
@@ -16,6 +25,5 @@ export default function Dashboard() {
     )
   }
 
-  // The wall IS the page; the planner is overlaid on it inside Scene.
   return <Scene coupleId={coupleId} myId={myId} />
 }

@@ -198,10 +198,11 @@ export default function Dog({ coupleId, myId, myName }: { coupleId: string; myId
     return Math.max(0, Math.min(100, Math.round((hrs / 24) * 100)))
   })()
   const fullness = 100 - hunger
-  const energy = (() => {           // higher = more playful/energised; drops since last play
-    if (!pet) return 0
+  const energy = (() => {           // rested & eager; dips right after play, recovers within ~3h
+    if (!pet) return 100
     const hrs = (Date.now() - new Date(pet.last_played).getTime()) / 3.6e6
-    return Math.max(0, Math.min(100, Math.round(100 - (hrs / 18) * 100)))
+    if (hrs >= 3) return 100        // fully rested
+    return Math.round(40 + (hrs / 3) * 60)  // 40 right after play -> 100 after 3h
   })()
   const bondLevel = Math.min(100, (pet?.bond ?? 0))
 

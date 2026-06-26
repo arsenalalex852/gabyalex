@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#14171c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Mobility Timer</title>
+<style>
+  :root{
+    --bg:#14171c;        /* deep slate, easy on eyes during floor work */
+    --panel:#1b1f26;
+    --panel-2:#21262f;
+    --ink:#f2f4f7;
+    --muted:#7e8794;
+    --muted-2:#565e6a;
+    --line:#2a2f38;
+    --active:#5fd38b;    /* active stretch (green) */
+    --prep:#56b6ff;      /* prep countdown (blue) */
+    --reps:#ffb454;      /* rep-based (amber) */
+    --accent:#5fd38b;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;}
+  body{
+    background:var(--bg);color:var(--ink);
+    font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    overflow:hidden;
+    -webkit-user-select:none;user-select:none;
+  }
+  .screen{height:100dvh;display:flex;flex-direction:column;}
+  .hidden{display:none !important;}
+
+  /* ---------- Menu ---------- */
+  #menu{padding:max(28px,env(safe-area-inset-top)) 22px 22px;overflow-y:auto;}
+  .eyebrow{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted-2);font-weight:600;}
+  .menu-title{font-size:30px;font-weight:800;letter-spacing:-.02em;margin:6px 0 4px;line-height:1.1;}
+  .menu-sub{color:var(--muted);font-size:14px;margin-bottom:26px;line-height:1.5;}
+  .day-card{
+    width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);
+    border-radius:16px;padding:18px 18px;margin-bottom:12px;color:var(--ink);
+    display:flex;align-items:center;justify-content:space-between;gap:14px;cursor:pointer;
+    transition:border-color .15s,transform .08s,background .15s;
+  }
+  .day-card:active{transform:scale(.985);background:var(--panel-2);}
+  .day-card .num{font-size:13px;color:var(--accent);font-weight:700;letter-spacing:.08em;}
+  .day-card .name{font-size:18px;font-weight:650;margin-top:3px;letter-spacing:-.01em;}
+  .day-card .meta{font-size:13px;color:var(--muted);margin-top:4px;}
+  .day-card .arrow{color:var(--muted-2);font-size:22px;flex-shrink:0;}
+
+  /* ---------- Timer ---------- */
+  #timer{display:none;}
+  .top-bar{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:max(16px,env(safe-area-inset-top)) 20px 12px;border-bottom:1px solid var(--line);
+  }
+  .top-bar .back{background:none;border:none;color:var(--muted);font-size:15px;font-weight:600;padding:6px 0;cursor:pointer;}
+  .top-bar .day-name{font-size:14px;color:var(--muted);font-weight:600;}
+  .progress-track{height:3px;background:var(--line);position:relative;}
+  .progress-fill{height:100%;background:var(--accent);width:0;transition:width .3s ease;}
+
+  .stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:18px 24px;min-height:0;}
+  .phase-tag{font-size:12px;letter-spacing:.2em;text-transform:uppercase;font-weight:700;color:var(--muted-2);margin-bottom:14px;height:16px;}
+  .ex-name{font-size:clamp(24px,7vw,34px);font-weight:750;line-height:1.18;letter-spacing:-.02em;max-width:560px;}
+  .ex-name .ready{display:block;font-size:14px;font-weight:600;color:var(--prep);letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px;}
+  .clock{font-variant-numeric:tabular-nums;font-weight:800;font-size:clamp(64px,22vw,120px);
+    line-height:1;letter-spacing:-.03em;margin:22px 0 8px;color:var(--active);}
+  .clock.prep{color:var(--prep);}
+  .clock.reps{color:var(--reps);font-size:clamp(40px,12vw,64px);}
+  .clock.done{color:var(--active);}
+
+  .controls{display:flex;gap:12px;padding:16px 20px calc(20px + env(safe-area-inset-bottom));}
+  .btn{flex:1;border:none;border-radius:14px;padding:18px 16px;font-size:17px;font-weight:700;
+    cursor:pointer;letter-spacing:-.01em;transition:transform .08s,opacity .15s;}
+  .btn:active{transform:scale(.97);}
+  .btn-pause{background:var(--panel-2);color:var(--ink);border:1px solid var(--line);}
+  .btn-next{background:var(--accent);color:#0c1a12;}
+
+  /* sidebar = bottom list on phone */
+  .ex-list{padding:0 20px 12px;overflow-y:auto;max-height:30dvh;}
+  .ex-list-title{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted-2);font-weight:700;margin:6px 0 10px;}
+  .ex-item{display:flex;align-items:center;gap:11px;padding:7px 0;font-size:14px;color:var(--muted-2);}
+  .ex-item .dot{width:7px;height:7px;border-radius:50%;background:var(--muted-2);flex-shrink:0;}
+  .ex-item.done{color:var(--muted);}
+  .ex-item.done .dot{background:var(--accent);}
+  .ex-item.current{color:var(--ink);font-weight:650;}
+  .ex-item.current .dot{background:var(--ink);box-shadow:0 0 0 4px rgba(255,255,255,.08);}
+
+  @media (min-width:760px){
+    #timer.screen{flex-direction:row;}
+    .timer-main{flex:1;display:flex;flex-direction:column;min-width:0;}
+    .ex-list{order:-1;max-height:none;width:300px;border-right:1px solid var(--line);padding:24px 22px;}
+    .ex-list-title{margin-top:8px;}
+  }
+</style>
+</head>
+<body>
+
+<!-- MENU -->
+<div id="menu" class="screen">
+  <div class="eyebrow">Mobility &amp; Stretching</div>
+  <h1 class="menu-title">Pick today's session</h1>
+  <p class="menu-sub">Six short days, ~15 min each. Each flows warm-up &rarr; strength &rarr; deep holds.</p>
+  <div id="day-list"></div>
+</div>
+
+<!-- TIMER -->
+<div id="timer" class="screen">
+  <div class="ex-list" id="ex-list-wrap">
+    <div class="ex-list-title">Today's moves</div>
+    <div id="ex-list"></div>
+  </div>
+  <div class="timer-main">
+    <div class="top-bar">
+      <button class="back" id="back-btn">&larr; Menu</button>
+      <span class="day-name" id="day-name"></span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progress"></div></div>
+    <div class="stage">
+      <div class="phase-tag" id="phase-tag"></div>
+      <div class="ex-name" id="ex-name"></div>
+      <div class="clock" id="clock">00:00</div>
+    </div>
+    <div class="controls">
+      <button class="btn btn-pause" id="pause-btn">Pause</button>
+      <button class="btn btn-next" id="next-btn">Next &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const ROUTINES = {"Day 1: Hips Open":[["Body Bounces and Standing Side Body Reaches",60],["Dead Bugs (3 Sets / 10 Reps)",0],["Single Leg Glute Bridges",0],["Couch Stretch (Left Side)",120],["Couch Stretch (Right Side)",120]],"Day 2: Spine & Flow":[["Down-Up Dogs (2 Sets / 10 Reps)",0],["T-Spine Windmills (10 Reps per side)",0],["Bird Dogs with Glute hold",0],["Hollow Body Hold (3 Sets x 30 sec)",90],["Thread the Needle",0]],"Day 3: Deep Squat & Groin":[["Deep Squats Rotations",120],["Seated Single Leg Raises (3x10 Reps / side)",0],["Frog Stretch",120],["Tall wide frog squat M Shape",120]],"Day 4: Posture & Pull":[["Wall Slides (2 Sets / 12 Reps)",0],["Back Plank 3*30",0],["Chin Tucks (3 Sets / 15 Reps)",0],["Doorway Pec Stretch",0],["Pigeon Pose",0]],"Day 5: Foundations & Feet":[["Seiza Pose + Kneeling Crab Reaches",120],["Back Plank",110],["Tibialis Anterior (2 Sets / 15 Reps)",0],["Big Toe Stretch",60]],"Day 6: Lateral & 90/90":[["Wide, kneeled side lunge",0],["Side Planks",0],["Hips 90/90 feet raised",0],["Side Lunge (Left Side)",60],["Couch Stretch (Left Side)",60],["Couch Stretch (Right Side)",60]]};
+
+// Which moves are static holds (deep stretch) vs the rest — drives the phase tag.
+// We infer phase from position isn't reliable, so tag by simple heuristic per day order:
+// dynamic = first item, holds = timed non-prep at the end. We'll just label by type:
+function phaseLabel(name, dur, idx, list){
+  // Rep-based (dur 0) that read as strength
+  const strengthHints = ["Plank","Dead Bug","Bridge","Bird Dog","Hollow","Chin Tuck","Single Leg Raise","Tibialis","90/90"];
+  const dynamicHints = ["Bounce","Windmill","Down-Up","Deep Squat","Wall Slide","Crab","kneeled side lunge","Thread"];
+  if (dynamicHints.some(h=>name.includes(h))) return "Warm-up";
+  if (strengthHints.some(h=>name.includes(h))) return "Strength";
+  return "Hold";
+}
+
+// ---- State ----
+let currentDay=null, idx=0, timeLeft=0, actualDur=0, timerId=null,
+    isPaused=false, isPrep=false;
+
+// ---- Audio (unlocks on first tap) ----
+let audioCtx=null;
+function unlockAudio(){
+  if(!audioCtx){
+    try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
+  }
+  if(audioCtx && audioCtx.state==="suspended") audioCtx.resume();
+}
+function beep(){
+  if(!audioCtx) return;
+  const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+  o.connect(g); g.connect(audioCtx.destination);
+  o.frequency.value=880; o.type="sine";
+  g.gain.setValueAtTime(0.0001,audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.4,audioCtx.currentTime+0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+0.35);
+  o.start(); o.stop(audioCtx.currentTime+0.36);
+  if(navigator.vibrate) navigator.vibrate(80);
+}
+document.body.addEventListener("touchstart",unlockAudio,{once:false});
+document.body.addEventListener("click",unlockAudio,{once:false});
+
+// ---- Elements ----
+const menuEl=document.getElementById("menu");
+const timerEl=document.getElementById("timer");
+const dayListEl=document.getElementById("day-list");
+const exListEl=document.getElementById("ex-list");
+const dayNameEl=document.getElementById("day-name");
+const phaseTagEl=document.getElementById("phase-tag");
+const exNameEl=document.getElementById("ex-name");
+const clockEl=document.getElementById("clock");
+const pauseBtn=document.getElementById("pause-btn");
+const nextBtn=document.getElementById("next-btn");
+const progressEl=document.getElementById("progress");
+
+// ---- Build menu ----
+Object.keys(ROUTINES).forEach((day,i)=>{
+  const list=ROUTINES[day];
+  const holdSec=list.reduce((s,[,d])=>s+d,0);
+  const card=document.createElement("button");
+  card.className="day-card";
+  const label=day.replace(/^Day \d+:\s*/,"");
+  card.innerHTML=`<div><div class="num">DAY ${i+1}</div>
+    <div class="name">${label}</div>
+    <div class="meta">${list.length} moves &middot; ~${Math.max(10,Math.round(holdSec/60)+8)} min</div></div>
+    <div class="arrow">&rsaquo;</div>`;
+  card.onclick=()=>startRoutine(day);
+  dayListEl.appendChild(card);
+});
+
+function showMenu(){
+  if(timerId) clearInterval(timerId);
+  timerId=null;
+  timerEl.style.display="none";
+  menuEl.style.display="flex";
+}
+function startRoutine(day){
+  currentDay=day; idx=0;
+  menuEl.style.display="none";
+  timerEl.style.display="flex";
+  dayNameEl.textContent=day;
+  buildExList();
+  loadExercise();
+}
+function buildExList(){
+  exListEl.innerHTML="";
+  ROUTINES[currentDay].forEach((ex,i)=>{
+    const item=document.createElement("div");
+    item.className="ex-item";
+    item.innerHTML=`<span class="dot"></span><span>${ex[0]}</span>`;
+    exListEl.appendChild(item);
+  });
+}
+function refreshExList(){
+  [...exListEl.children].forEach((item,i)=>{
+    item.classList.remove("done","current");
+    if(i<idx) item.classList.add("done");
+    else if(i===idx) item.classList.add("current");
+  });
+  const total=ROUTINES[currentDay].length;
+  progressEl.style.width=(Math.min(idx,total)/total*100)+"%";
+}
+
+function loadExercise(){
+  if(timerId){clearInterval(timerId);timerId=null;}
+  refreshExList();
+  const list=ROUTINES[currentDay];
+
+  if(idx>=list.length){
+    phaseTagEl.textContent="";
+    exNameEl.textContent="Session complete";
+    clockEl.textContent="✓";
+    clockEl.className="clock done";
+    pauseBtn.disabled=true; pauseBtn.style.opacity=.4;
+    nextBtn.textContent="Back to menu";
+    nextBtn.onclick=showMenu;
+    progressEl.style.width="100%";
+    return;
+  }
+
+  pauseBtn.disabled=false; pauseBtn.style.opacity=1;
+  nextBtn.textContent="Next →";
+  nextBtn.onclick=nextExercise;
+
+  const [name,dur]=list[idx];
+  actualDur=dur; isPaused=false; pauseBtn.textContent="Pause";
+  phaseTagEl.textContent=phaseLabel(name,dur,idx,list);
+
+  if(dur===0){
+    isPrep=false;
+    exNameEl.textContent=name;
+    clockEl.textContent="Do reps";
+    clockEl.className="clock reps";
+  }else{
+    isPrep=true; timeLeft=5;
+    exNameEl.innerHTML=`<span class="ready">Get ready</span>${name}`;
+    clockEl.className="clock prep";
+    updateClock();
+    startTick();
+  }
+}
+
+function startTick(){
+  if(timerId) clearInterval(timerId);
+  timerId=setInterval(tick,1000);
+}
+function tick(){
+  if(isPaused) return;
+  if(timeLeft>0){
+    timeLeft--; updateClock();
+  }else{
+    if(isPrep){
+      isPrep=false;
+      const name=ROUTINES[currentDay][idx][0];
+      timeLeft=actualDur;
+      exNameEl.textContent=name;
+      clockEl.className="clock";
+      beep();
+      updateClock();
+    }else{
+      clearInterval(timerId); timerId=null;
+      beep();
+      nextExercise();
+    }
+  }
+}
+function updateClock(){
+  const m=String(Math.floor(timeLeft/60)).padStart(2,"0");
+  const s=String(timeLeft%60).padStart(2,"0");
+  clockEl.textContent=`${m}:${s}`;
+}
+function togglePause(){
+  if(actualDur===0 && !isPrep){ return; } // rep moves: nothing to pause
+  isPaused=!isPaused;
+  pauseBtn.textContent=isPaused?"Resume":"Pause";
+}
+function nextExercise(){
+  idx++; loadExercise();
+}
+
+pauseBtn.onclick=togglePause;
+nextBtn.onclick=nextExercise;
+document.getElementById("back-btn").onclick=showMenu;
+
+// keep screen awake during a session if supported
+let wakeLock=null;
+async function requestWake(){
+  try{ if("wakeLock" in navigator) wakeLock=await navigator.wakeLock.request("screen"); }catch(e){}
+}
+document.addEventListener("visibilitychange",()=>{
+  if(wakeLock===null && document.visibilityState==="visible") requestWake();
+});
+requestWake();
+</script>
+</body>
+</html>

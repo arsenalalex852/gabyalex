@@ -24,7 +24,7 @@ export const PHOTOS: Photo[] = [
 ]
 
 // Clickable zones over wall objects. x/y/w/h are % of the WALL.
-export type Zone = { id: string; label: string; feature: string; xPct: number; yPct: number; wPct: number; hPct: number }
+export type Zone = { id: string; label: string; feature: string; xPct: number; yPct: number; wPct: number; hPct: number; alexOnly?: boolean }
 
 export const ZONES: Zone[] = [
   // shelf (right)
@@ -38,4 +38,6 @@ export const ZONES: Zone[] = [
   { id: 'canvas', label: 'Brainstorm',   feature: 'brainstorm', xPct: 48.5, yPct: 86.2, wPct: 5, hPct: 9 },
   // map basket (left, floor)
   { id: 'map',    label: 'World map',    feature: 'map',        xPct: 14.0, yPct: 87.9, wPct: 14, hPct: 23 },
+  // Alex-only: a mango -> stretching routine (place it on a mango in edit mode)
+  { id: 'stretch', label: 'Stretching',  feature: 'stretch',    xPct: 90.0, yPct: 15.0, wPct: 5, hPct: 8, alexOnly: true },
 ]

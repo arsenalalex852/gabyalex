@@ -184,7 +184,7 @@ export default function Scene({ coupleId, myId }: { coupleId: string; myId: stri
           <Layer id="shelf" z={3} />
 
           {/* clickable zones on top */}
-          {zones.map((zn) => (
+          {zones.filter((zn) => !zn.alexOnly || isAlex).map((zn) => (
             <div key={zn.id} onPointerDown={() => edit && setDrag('z:' + zn.id)} onClick={() => !edit && setOpen(zn.feature)} title={zn.label} className={edit ? '' : 'zone'}
               style={{ position: 'absolute', left: `${zn.xPct}%`, top: `${zn.yPct}%`, width: `${zn.wPct}%`, height: `${zn.hPct}%`, transform: 'translate(-50%,-50%)', borderRadius: 10, zIndex: edit ? 20 : 5, cursor: edit ? 'grab' : 'pointer', border: edit ? '2px dashed rgba(192,98,63,.9)' : '2px solid transparent', background: edit ? 'rgba(192,98,63,.12)' : 'transparent', transition: 'background .15s' }}>
               {edit && (
@@ -209,6 +209,11 @@ export default function Scene({ coupleId, myId }: { coupleId: string; myId: stri
       <Modal open={open === 'books'} onClose={() => setOpen(null)} wide><MediaList kind="books" coupleId={coupleId} myName={myName} /></Modal>
       <Modal open={open === 'watch'} onClose={() => setOpen(null)} wide><MediaList kind="movies" coupleId={coupleId} myName={myName} /></Modal>
       <Modal open={open === 'brainstorm'} onClose={() => setOpen(null)}><Brainstorm coupleId={coupleId} /></Modal>
+      <Modal open={open === 'stretch'} onClose={() => setOpen(null)} wide>
+        <div style={{ background: '#14171c', borderRadius: 16, overflow: 'hidden', height: '80vh', boxShadow: '0 24px 60px rgba(0,0,0,.5)' }}>
+          <iframe src="/stretch.html" title="stretching" style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} />
+        </div>
+      </Modal>
       <Modal open={open === 'planner'} onClose={() => setOpen(null)} wide>
         <div style={{ background: 'linear-gradient(165deg, rgba(34,25,16,.97), rgba(22,15,9,.98))', borderRadius: 16, padding: 4, height: '70vh' }}>
           <Planner coupleId={coupleId} myId={myId} stacked />

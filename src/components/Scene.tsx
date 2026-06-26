@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { WALL_SRC, WALL_RATIO, SHELF, PAINTING, PAINTING_ART, TABLE, MAP, FRAMES, PLANNER_FRAME, PLANNER_OPENING, PHOTOS, ZONES, Zone } from '../scene/sceneConfig'
 import Modal from './Modal'
@@ -26,6 +26,12 @@ export default function Scene({ coupleId, myId }: { coupleId: string; myId: stri
   const [map, setMap] = useState<Box>(MAP)
   const [frames, setFrames] = useState<Box>(FRAMES)
   const [planner, setPlanner] = useState<Box>(PLANNER_FRAME)
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth < 760)
+  useEffect(() => {
+    const onR = () => setIsMobile(window.innerWidth < 760)
+    window.addEventListener('resize', onR)
+    return () => window.removeEventListener('resize', onR)
+  }, [])
   const [zones, setZones] = useState<Zone[]>(ZONES)
   const [edit, setEdit] = useState(false)
   const [drag, setDrag] = useState<string | null>(null)
@@ -119,7 +125,16 @@ export default function Scene({ coupleId, myId }: { coupleId: string; myId: stri
             <button onClick={() => signOut()} style={{ ...ctrl, background: 'rgba(0,0,0,.4)', color: '#fff' }}>sign out</button>
           </div>
 
-          {/* planner: clean panel directly on the wall (no frame) */}
+          {/* planner: full panel on desktop; on phone a tappable label that opens a modal */}
+          {isMobile ? (
+            <button onClick={() => setOpen('planner')} style={{
+              position: 'absolute', left: `${planner.xPct}%`, top: `${planner.yPct}%`,
+              transform: 'translate(-50%,-50%)', zIndex: 6,
+              background: 'linear-gradient(165deg, rgba(34,25,16,.94), rgba(22,15,9,.95))', color: '#e8d9b8',
+              border: '1px solid rgba(224,178,81,.3)', borderRadius: 12, padding: '12px 20px',
+              fontFamily: "'Fraunces',Georgia,serif", fontSize: 16, fontWeight: 600, cursor: 'pointer', boxShadow: '0 8px 24px rgba(0,0,0,.4)',
+            }}>Our planner ›</button>
+          ) : (
           <div style={{ position: 'absolute', left: `${planner.xPct}%`, top: `${planner.yPct}%`, width: `${planner.widthPct}%`, height: `${planner.hPct ?? 44}%`, transform: 'translate(-50%,-50%)', zIndex: 6, pointerEvents: edit ? 'none' : 'auto' }}>
             <Planner coupleId={coupleId} myId={myId} onWall />
             {edit && (
@@ -139,6 +154,7 @@ export default function Scene({ coupleId, myId }: { coupleId: string; myId: stri
               </div>
             )}
           </div>
+          )}
 
           {/* wall-hung items behind */}
           <Layer id="map" z={1} />
@@ -174,6 +190,11 @@ export default function Scene({ coupleId, myId }: { coupleId: string; myId: stri
       <Modal open={open === 'books'} onClose={() => setOpen(null)} wide><MediaList kind="books" coupleId={coupleId} myName={myName} /></Modal>
       <Modal open={open === 'watch'} onClose={() => setOpen(null)} wide><MediaList kind="movies" coupleId={coupleId} myName={myName} /></Modal>
       <Modal open={open === 'brainstorm'} onClose={() => setOpen(null)}><Brainstorm coupleId={coupleId} /></Modal>
+      <Modal open={open === 'planner'} onClose={() => setOpen(null)} wide>
+        <div style={{ background: 'linear-gradient(165deg, rgba(34,25,16,.97), rgba(22,15,9,.98))', borderRadius: 16, padding: 4, height: '70vh' }}>
+          <Planner coupleId={coupleId} myId={myId} stacked />
+        </div>
+      </Modal>
       <Modal open={open === 'map'} onClose={() => setOpen(null)} wide>
         <TravelMap coupleId={coupleId} myId={myId} />
       </Modal>

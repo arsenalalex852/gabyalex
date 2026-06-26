@@ -18,7 +18,7 @@ const GOLD = '#e8d9b8'
 const BLUE = '#7da7e8'
 const RED = '#e88379'
 
-export default function Planner({ coupleId, myId, onWall = false }: { coupleId: string; myId: string; onWall?: boolean }) {
+export default function Planner({ coupleId, myId, onWall = false, stacked = false }: { coupleId: string; myId: string; onWall?: boolean; stacked?: boolean }) {
   const [items, setItems] = useState<Item[]>([])
   const [people, setPeople] = useState<Person[]>([])
   const [draft, setDraft] = useState<Record<string, string>>({})
@@ -57,14 +57,18 @@ export default function Planner({ coupleId, myId, onWall = false }: { coupleId: 
   return (
     <div style={{
       height: '100%', width: '100%', boxSizing: 'border-box',
-      background: 'linear-gradient(165deg, rgba(30,22,15,.72), rgba(20,14,9,.74))',
-      backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+      background: 'linear-gradient(165deg, rgba(38,27,16,.93), rgba(28,19,11,.95))',
+      backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
       borderRadius: 16, padding: '14px 16px',
       color: INK, fontFamily: SANS, display: 'flex', flexDirection: 'column', gap: 8,
-      boxShadow: onWall ? '0 10px 36px rgba(20,12,6,.4), inset 0 0 0 1px rgba(255,255,255,.08)' : 'none', overflow: 'hidden',
+      boxShadow: onWall ? '0 10px 36px rgba(20,12,6,.45), inset 0 0 0 1px rgba(224,178,81,.14)' : 'none', overflow: 'hidden',
     }}>
+      {/* date */}
+      <div style={{ fontFamily: SERIF, fontSize: 13, fontWeight: 500, color: GOLD, opacity: .85, letterSpacing: .3, marginBottom: 2 }}>
+        {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+      </div>
       {/* header */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, paddingLeft: 2 }}>
+      <div style={{ display: stacked ? 'none' : 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, paddingLeft: 2 }}>
         {SECTIONS.map((s) => (
           <div key={s.key} style={{ fontFamily: SERIF, fontSize: 14, fontWeight: 600, color: GOLD, letterSpacing: .3 }}>{s.title}</div>
         ))}
@@ -77,20 +81,21 @@ export default function Planner({ coupleId, myId, onWall = false }: { coupleId: 
         return (
           <div key={p.id} style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
             <div style={{ fontFamily: SERIF, fontSize: 12, fontWeight: 700, color, letterSpacing: .4, marginBottom: 3 }}>{name}</div>
-            <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, minHeight: 0 }}>
+            <div style={{ flex: 1, display: 'grid', gridTemplateColumns: stacked ? '1fr' : '1fr 1fr 1fr', gap: 8, minHeight: 0, overflowY: stacked ? 'auto' : 'visible' }}>
               {SECTIONS.map((s) => {
                 const list = items.filter((i) => i.section === s.key && i.author_id === p.id)
                 const done = list.filter((i) => i.done).length
                 const pct = list.length ? (done / list.length) * 100 : 0
                 return (
-                  <div key={s.key} style={{ display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0,
-                    background: 'rgba(255,255,255,.04)', borderRadius: 7, padding: 6, border: '1px solid rgba(255,255,255,.06)' }}>
+                  <div key={s.key} style={{ display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: stacked ? 110 : 0,
+                    background: 'rgba(255,255,255,.04)', borderRadius: 7, padding: stacked ? 10 : 6, border: '1px solid rgba(255,255,255,.06)' }}>
+                    {stacked && <div style={{ fontFamily: SERIF, fontSize: 13, fontWeight: 600, color: GOLD, marginBottom: 6 }}>{s.title}</div>}
                     <div style={{ height: 2.5, borderRadius: 3, background: 'rgba(255,255,255,.1)', overflow: 'hidden', marginBottom: 5 }}>
                       <div style={{ width: `${pct}%`, height: '100%', background: color, opacity: .9, transition: 'width .3s' }} />
                     </div>
-                    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2, minHeight: 0 }}>
+                    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: stacked ? 4 : 2, minHeight: 0 }}>
                       {list.map((it) => (
-                        <div key={it.id} className="pl-item" style={{ display: 'flex', alignItems: 'flex-start', gap: 4, fontSize: 11, lineHeight: 1.25 }}>
+                        <div key={it.id} className="pl-item" style={{ display: 'flex', alignItems: 'flex-start', gap: 5, fontSize: stacked ? 14 : 11, lineHeight: 1.3 }}>
                           <button onClick={() => toggle(it)} style={{
                             flexShrink: 0, width: 11, height: 11, marginTop: 1, borderRadius: 3, cursor: 'pointer', padding: 0,
                             border: `1.5px solid ${it.done ? color : 'rgba(255,255,255,.3)'}`,
@@ -105,7 +110,7 @@ export default function Planner({ coupleId, myId, onWall = false }: { coupleId: 
                       <input value={draft[s.key] ?? ''} onChange={(e) => setDraft((d) => ({ ...d, [s.key]: e.target.value }))}
                         onKeyDown={(e) => e.key === 'Enter' && add(s.key)} placeholder="+ add"
                         style={{ marginTop: 4, width: '100%', boxSizing: 'border-box', borderRadius: 5, padding: '3px 6px',
-                          border: '1px solid rgba(255,255,255,.1)', background: 'rgba(255,255,255,.05)', color: INK, fontFamily: SANS, fontSize: 10.5, outline: 'none' }} />
+                          border: '1px solid rgba(255,255,255,.1)', background: 'rgba(255,255,255,.05)', color: INK, fontFamily: SANS, fontSize: stacked ? 14 : 10.5, outline: 'none' }} />
                     )}
                   </div>
                 )

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 type Section = 'today' | 'todo' | 'events'
-type Item = { id: string; section: Section; author_id: string | null; body: string; done: boolean }
+type Item = { id: string; section: Section; author_id: string | null; body: string; done: boolean; position: number | null }
 type Person = { id: string; display_name: string | null }
 
 const SECTIONS: { key: Section; title: string }[] = [
@@ -22,12 +22,15 @@ export default function Planner({ coupleId, myId, onWall = false, stacked = fals
   const [items, setItems] = useState<Item[]>([])
   const [people, setPeople] = useState<Person[]>([])
   const [draft, setDraft] = useState<Record<string, string>>({})
+  const [dragId, setDragId] = useState<string | null>(null)
+  const [overId, setOverId] = useState<string | null>(null)
 
   async function load() {
     const { data: profs } = await supabase.from('profiles').select('id, display_name').order('created_at')
     setPeople((profs as Person[]) ?? [])
     const { data } = await supabase.from('planner_items')
-      .select('id, section, author_id, body, done').eq('couple_id', coupleId).order('created_at')
+      .select('id, section, author_id, body, done, position').eq('couple_id', coupleId)
+      .order('position', { nullsFirst: false }).order('created_at')
     setItems((data as Item[]) ?? [])
   }
   useEffect(() => { load() }, []) // eslint-disable-line
@@ -37,9 +40,12 @@ export default function Planner({ coupleId, myId, onWall = false, stacked = fals
     const body = (draft[key] ?? '').trim()
     if (!body) return
     setDraft((d) => ({ ...d, [key]: '' }))
+    // place new item at the end of this person's section
+    const mine = items.filter((i) => i.section === section && i.author_id === myId)
+    const nextPos = mine.length ? Math.max(...mine.map((i) => i.position ?? 0)) + 1 : 1
     const { data } = await supabase.from('planner_items')
-      .insert({ couple_id: coupleId, author_id: myId, section, body, done: false })
-      .select('id, section, author_id, body, done').single()
+      .insert({ couple_id: coupleId, author_id: myId, section, body, done: false, position: nextPos })
+      .select('id, section, author_id, body, done, position').single()
     if (data) setItems((arr) => [...arr, data as Item])
   }
   async function toggle(it: Item) {
@@ -49,6 +55,27 @@ export default function Planner({ coupleId, myId, onWall = false, stacked = fals
   async function del(id: string) {
     setItems((arr) => arr.filter((x) => x.id !== id))
     await supabase.from('planner_items').delete().eq('id', id)
+  }
+
+  // reorder: move dragId to where overId sits, within the same section+author list
+  async function commitReorder(section: Section, authorId: string) {
+    if (!dragId || !overId || dragId === overId) { setDragId(null); setOverId(null); return }
+    const cell = items.filter((i) => i.section === section && i.author_id === authorId)
+      .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+    const from = cell.findIndex((i) => i.id === dragId)
+    const to = cell.findIndex((i) => i.id === overId)
+    if (from < 0 || to < 0) { setDragId(null); setOverId(null); return }
+    const reordered = [...cell]
+    const [moved] = reordered.splice(from, 1)
+    reordered.splice(to, 0, moved)
+    // renumber 1..n and persist
+    const updates = reordered.map((it, i) => ({ id: it.id, position: i + 1 }))
+    setItems((arr) => arr.map((x) => {
+      const u = updates.find((u) => u.id === x.id)
+      return u ? { ...x, position: u.position } : x
+    }))
+    setDragId(null); setOverId(null)
+    for (const u of updates) await supabase.from('planner_items').update({ position: u.position }).eq('id', u.id)
   }
 
   const ordered = [...people].sort((a, b) => (a.id === myId ? -1 : b.id === myId ? 1 : 0)).slice(0, 2)
@@ -65,7 +92,7 @@ export default function Planner({ coupleId, myId, onWall = false, stacked = fals
     }}>
       {/* date */}
       <div style={{ fontFamily: SERIF, fontSize: 13, fontWeight: 500, color: GOLD, opacity: .85, letterSpacing: .3, marginBottom: 2 }}>
-        {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+        {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/New_York' })}
       </div>
       {/* header */}
       <div style={{ display: stacked ? 'none' : 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, paddingLeft: 2 }}>
@@ -84,6 +111,7 @@ export default function Planner({ coupleId, myId, onWall = false, stacked = fals
             <div style={{ flex: 1, display: 'grid', gridTemplateColumns: stacked ? '1fr' : '1fr 1fr 1fr', gap: 8, minHeight: 0, overflowY: stacked ? 'auto' : 'visible' }}>
               {SECTIONS.map((s) => {
                 const list = items.filter((i) => i.section === s.key && i.author_id === p.id)
+                  .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
                 const done = list.filter((i) => i.done).length
                 const pct = list.length ? (done / list.length) * 100 : 0
                 return (
@@ -95,7 +123,20 @@ export default function Planner({ coupleId, myId, onWall = false, stacked = fals
                     </div>
                     <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: stacked ? 4 : 2, minHeight: 0 }}>
                       {list.map((it) => (
-                        <div key={it.id} className="pl-item" style={{ display: 'flex', alignItems: 'flex-start', gap: 5, fontSize: stacked ? 14 : 11, lineHeight: 1.3 }}>
+                        <div key={it.id} className="pl-item"
+                          onPointerEnter={() => dragId && mine && setOverId(it.id)}
+                          style={{ display: 'flex', alignItems: 'flex-start', gap: 5, fontSize: stacked ? 14 : 11, lineHeight: 1.3,
+                            opacity: dragId === it.id ? 0.4 : 1,
+                            borderTop: overId === it.id && dragId && dragId !== it.id ? `2px solid ${color}` : '2px solid transparent',
+                            transition: 'opacity .12s' }}>
+                          {mine && (
+                            <span
+                              onPointerDown={(e) => { (e.target as HTMLElement).setPointerCapture?.(e.pointerId); setDragId(it.id); setOverId(it.id) }}
+                              onPointerUp={() => commitReorder(s.key, p.id)}
+                              className="pl-grip"
+                              style={{ flexShrink: 0, cursor: 'grab', color: 'rgba(236,228,211,.35)', fontSize: stacked ? 15 : 12, lineHeight: 1, marginTop: 1, touchAction: 'none', userSelect: 'none' }}
+                              title="drag to reorder">⠿</span>
+                          )}
                           <button onClick={() => toggle(it)} style={{
                             flexShrink: 0, width: 11, height: 11, marginTop: 1, borderRadius: 3, cursor: 'pointer', padding: 0,
                             border: `1.5px solid ${it.done ? color : 'rgba(255,255,255,.3)'}`,
@@ -119,7 +160,7 @@ export default function Planner({ coupleId, myId, onWall = false, stacked = fals
           </div>
         )
       })}
-      <style>{`.pl-del{opacity:0;transition:opacity .15s}.pl-item:hover .pl-del{opacity:1}`}</style>
+      <style>{`.pl-del{opacity:0;transition:opacity .15s}.pl-item:hover .pl-del{opacity:1}.pl-grip{opacity:.5;transition:opacity .15s}.pl-item:hover .pl-grip{opacity:1}`}</style>
     </div>
   )
 }

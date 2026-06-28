@@ -39,5 +39,5 @@ export const ZONES: Zone[] = [
   // map basket (left, floor)
   { id: 'map',    label: 'World map',    feature: 'map',        xPct: 14.0, yPct: 87.9, wPct: 14, hPct: 23 },
   // Alex-only: a mango -> stretching routine (place it on a mango in edit mode)
-  { id: 'stretch', label: 'Stretching',  feature: 'stretch',    xPct: 90.0, yPct: 15.0, wPct: 5, hPct: 8, alexOnly: true },
+  { id: 'stretch', label: 'Stretching',  feature: 'stretch',    xPct: 90.0, yPct: 15.0, wPct: 5, hPct: 8 },
 ]

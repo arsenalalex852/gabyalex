@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 
 type Section = 'today' | 'todo' | 'events'
@@ -57,24 +57,50 @@ export default function Planner({ coupleId, myId, onWall = false, stacked = fals
     await supabase.from('planner_items').delete().eq('id', id)
   }
 
+  // reorder via global pointer tracking (works on mouse + touch)
+  const dragInfo = useRef<{ section: Section; authorId: string } | null>(null)
+
+  function startDrag(it: Item, section: Section, authorId: string, e: React.PointerEvent) {
+    e.preventDefault()
+    setDragId(it.id); setOverId(it.id)
+    dragInfo.current = { section, authorId }
+  }
+
+  useEffect(() => {
+    if (!dragId) return
+    function onMove(e: PointerEvent) {
+      const el = document.elementFromPoint(e.clientX, e.clientY)
+      const row = el?.closest('[data-item-id]') as HTMLElement | null
+      if (row?.dataset.itemId) setOverId(row.dataset.itemId)
+    }
+    function onUp() {
+      const info = dragInfo.current
+      if (info) commitReorder(info.section, info.authorId)
+      dragInfo.current = null
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    return () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp) }
+  }, [dragId, overId, items]) // eslint-disable-line
+
   // reorder: move dragId to where overId sits, within the same section+author list
   async function commitReorder(section: Section, authorId: string) {
-    if (!dragId || !overId || dragId === overId) { setDragId(null); setOverId(null); return }
+    const dId = dragId, oId = overId
+    setDragId(null); setOverId(null)
+    if (!dId || !oId || dId === oId) return
     const cell = items.filter((i) => i.section === section && i.author_id === authorId)
       .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
-    const from = cell.findIndex((i) => i.id === dragId)
-    const to = cell.findIndex((i) => i.id === overId)
-    if (from < 0 || to < 0) { setDragId(null); setOverId(null); return }
+    const from = cell.findIndex((i) => i.id === dId)
+    const to = cell.findIndex((i) => i.id === oId)
+    if (from < 0 || to < 0) return
     const reordered = [...cell]
     const [moved] = reordered.splice(from, 1)
     reordered.splice(to, 0, moved)
-    // renumber 1..n and persist
     const updates = reordered.map((it, i) => ({ id: it.id, position: i + 1 }))
     setItems((arr) => arr.map((x) => {
       const u = updates.find((u) => u.id === x.id)
       return u ? { ...x, position: u.position } : x
     }))
-    setDragId(null); setOverId(null)
     for (const u of updates) await supabase.from('planner_items').update({ position: u.position }).eq('id', u.id)
   }
 
@@ -123,16 +149,14 @@ export default function Planner({ coupleId, myId, onWall = false, stacked = fals
                     </div>
                     <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: stacked ? 4 : 2, minHeight: 0 }}>
                       {list.map((it) => (
-                        <div key={it.id} className="pl-item"
-                          onPointerEnter={() => dragId && mine && setOverId(it.id)}
+                        <div key={it.id} className="pl-item" data-item-id={it.id}
                           style={{ display: 'flex', alignItems: 'flex-start', gap: 5, fontSize: stacked ? 14 : 11, lineHeight: 1.3,
                             opacity: dragId === it.id ? 0.4 : 1,
                             borderTop: overId === it.id && dragId && dragId !== it.id ? `2px solid ${color}` : '2px solid transparent',
                             transition: 'opacity .12s' }}>
                           {mine && (
                             <span
-                              onPointerDown={(e) => { (e.target as HTMLElement).setPointerCapture?.(e.pointerId); setDragId(it.id); setOverId(it.id) }}
-                              onPointerUp={() => commitReorder(s.key, p.id)}
+                              onPointerDown={(e) => startDrag(it, s.key, p.id, e)}
                               className="pl-grip"
                               style={{ flexShrink: 0, cursor: 'grab', color: 'rgba(236,228,211,.35)', fontSize: stacked ? 15 : 12, lineHeight: 1, marginTop: 1, touchAction: 'none', userSelect: 'none' }}
                               title="drag to reorder">⠿</span>

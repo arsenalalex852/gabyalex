@@ -11,6 +11,7 @@ import MediaList from './MediaList'
 import Brainstorm from './Brainstorm'
 import TravelMap from './TravelMap'
 import Dog from './Dog'
+import Cookbook from './Cookbook'
 import Planner from './Planner'
 
 type Box = { src: string; xPct: number; yPct: number; widthPct: number; hPct?: number }
@@ -27,6 +28,7 @@ export default function Scene({ coupleId, myId }: { coupleId: string; myId: stri
   const [map, setMap] = useState<Box>(MAP)
   const [frames, setFrames] = useState<Box>(FRAMES)
   const [planner, setPlanner] = useState<Box>(PLANNER_FRAME)
+  const [cookbook, setCookbook] = useState<Box>({ src: '/cookbook.png', xPct: 55, yPct: 60, widthPct: 12 })
   // who's currently on the page (live presence)
   const [online, setOnline] = useState<{ alex: boolean; gaby: boolean }>({ alex: isAlex, gaby: !isAlex })
   useEffect(() => {
@@ -54,9 +56,9 @@ export default function Scene({ coupleId, myId }: { coupleId: string; myId: stri
   const [open, setOpen] = useState<string | null>(null)
 
   const setters: Record<string, (b: Box) => void> = {
-    shelf: setShelf as any, painting: setPainting as any, table: setTable as any, map: setMap as any, frames: setFrames as any, planner: setPlanner as any,
+    shelf: setShelf as any, painting: setPainting as any, table: setTable as any, map: setMap as any, frames: setFrames as any, planner: setPlanner as any, cookbook: setCookbook as any,
   }
-  const boxes: Record<string, Box> = { shelf, painting, table, map, frames, planner }
+  const boxes: Record<string, Box> = { shelf, painting, table, map, frames, planner, cookbook }
 
   function pct(e: React.PointerEvent) {
     const r = stageRef.current!.getBoundingClientRect()
@@ -82,7 +84,7 @@ export default function Scene({ coupleId, myId }: { coupleId: string; myId: stri
     setZones((zs) => zs.map((z) => (z.id === id ? { ...z, wPct: Math.max(2, +(z.wPct + dw).toFixed(1)), hPct: Math.max(2, +(z.hPct + dh).toFixed(1)) } : z)))
   }
   function copyPositions() {
-    const out = { shelf, painting, table, map, frames, planner, plannerOpening: PLANNER_OPENING, photos: PHOTOS, zones }
+    const out = { shelf, painting, table, map, frames, planner, cookbook, plannerOpening: PLANNER_OPENING, photos: PHOTOS, zones }
     navigator.clipboard?.writeText(JSON.stringify(out, null, 2))
     alert('Layout copied — paste it to me or into sceneConfig.ts')
   }
@@ -182,6 +184,7 @@ export default function Scene({ coupleId, myId }: { coupleId: string; myId: stri
           {/* furniture */}
           <Layer id="table" z={2} />
           <Layer id="shelf" z={3} />
+          <Layer id="cookbook" z={4} />
 
           {/* clickable zones on top */}
           {zones.filter((zn) => !zn.alexOnly || isAlex).map((zn) => (
@@ -199,6 +202,12 @@ export default function Scene({ coupleId, myId }: { coupleId: string; myId: stri
             </div>
           ))}
           {!edit && <Dog coupleId={coupleId} myId={myId} myName={myName} />}
+
+          {/* cookbook: clickable when not editing (position tracks the cookbook image) */}
+          {!edit && (
+            <div onClick={() => setOpen('cookbook')} title="Cookbook" className="zone"
+              style={{ position: 'absolute', left: `${cookbook.xPct}%`, top: `${cookbook.yPct}%`, width: `${cookbook.widthPct}%`, height: `${cookbook.widthPct * 0.9}%`, transform: 'translate(-50%,-50%)', borderRadius: 10, cursor: 'pointer', zIndex: 6 }} />
+          )}
         </div>
       </div>
 
@@ -209,6 +218,7 @@ export default function Scene({ coupleId, myId }: { coupleId: string; myId: stri
       <Modal open={open === 'books'} onClose={() => setOpen(null)} wide><MediaList kind="books" coupleId={coupleId} myName={myName} /></Modal>
       <Modal open={open === 'watch'} onClose={() => setOpen(null)} wide><MediaList kind="movies" coupleId={coupleId} myName={myName} /></Modal>
       <Modal open={open === 'brainstorm'} onClose={() => setOpen(null)}><Brainstorm coupleId={coupleId} /></Modal>
+      <Modal open={open === 'cookbook'} onClose={() => setOpen(null)} wide><Cookbook coupleId={coupleId} /></Modal>
       <Modal open={open === 'stretch'} onClose={() => setOpen(null)} wide>
         <div style={{ background: '#14171c', borderRadius: 16, overflow: 'hidden', height: '80vh', boxShadow: '0 24px 60px rgba(0,0,0,.5)' }}>
           <iframe src="/stretch.html" title="stretching" style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} />

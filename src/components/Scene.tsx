@@ -28,7 +28,7 @@ export default function Scene({ coupleId, myId }: { coupleId: string; myId: stri
   const [map, setMap] = useState<Box>(MAP)
   const [frames, setFrames] = useState<Box>(FRAMES)
   const [planner, setPlanner] = useState<Box>(PLANNER_FRAME)
-  const [cookbook, setCookbook] = useState<Box>({ src: '/cookbook.png', xPct: 55, yPct: 60, widthPct: 12 })
+  const [cookbook, setCookbook] = useState<Box>({ src: '/cookbook.png', xPct: 57.5, yPct: 94.7, widthPct: 12 })
   // who's currently on the page (live presence)
   const [online, setOnline] = useState<{ alex: boolean; gaby: boolean }>({ alex: isAlex, gaby: !isAlex })
   useEffect(() => {

@@ -23,6 +23,12 @@ export default function Cookbook({ coupleId }: { coupleId: string }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState<Recipe | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth < 760)
+  useEffect(() => {
+    const onR = () => setIsMobile(window.innerWidth < 760)
+    window.addEventListener('resize', onR)
+    return () => window.removeEventListener('resize', onR)
+  }, [])
 
   async function load() {
     const { data } = await supabase.from('recipes')
@@ -88,7 +94,7 @@ export default function Cookbook({ coupleId }: { coupleId: string }) {
     <div style={{ display: 'flex', flexWrap: 'wrap', width: '100%', minHeight: 480, maxHeight: '82vh',
       background: PAPER, borderRadius: 18, overflow: 'hidden', fontFamily: SANS, color: INK, boxShadow: '0 24px 60px rgba(0,0,0,.5)' }}>
 
-      <div style={{ flex: '1 1 260px', minWidth: 0, borderRight: `1px solid ${LINE}`, display: 'flex', flexDirection: 'column', maxHeight: '82vh' }}>
+      <div style={{ flex: '1 1 260px', minWidth: 0, borderRight: isMobile ? 'none' : `1px solid ${LINE}`, display: (isMobile && current) ? 'none' : 'flex', flexDirection: 'column', maxHeight: '82vh', width: isMobile ? '100%' : undefined }}>
         <div style={{ padding: '18px 18px 10px' }}>
           <div style={{ fontFamily: SERIF, fontSize: 24, fontWeight: 600, color: TERRA }}>Our cookbook</div>
           <div style={{ fontSize: 12.5, color: `${INK}99`, marginTop: 2 }}>{recipes.length} recipes</div>
@@ -123,8 +129,14 @@ export default function Cookbook({ coupleId }: { coupleId: string }) {
         </div>
       </div>
 
-      <div style={{ flex: '2 1 380px', minWidth: 0, overflowY: 'auto', maxHeight: '82vh', padding: 24 }}>
-        {!current && <div style={{ color: `${INK}88`, fontFamily: SERIF, fontSize: 16, marginTop: 40, textAlign: 'center' }}>pick a recipe, or add a new one</div>}
+      <div style={{ flex: '2 1 380px', minWidth: 0, overflowY: 'auto', maxHeight: '82vh', padding: 24, display: (isMobile && !current) ? 'none' : 'block', width: isMobile ? '100%' : undefined }}>
+        {isMobile && current && (
+          <button onClick={() => { setSel(null); setEditing(false) }}
+            style={{ background: 'none', border: 'none', color: TERRA, fontWeight: 600, fontSize: 15, cursor: 'pointer', padding: '0 0 14px', display: 'flex', alignItems: 'center', gap: 6 }}>
+            ‹ All recipes
+          </button>
+        )}
+        {!isMobile && !current && <div style={{ color: `${INK}88`, fontFamily: SERIF, fontSize: 16, marginTop: 40, textAlign: 'center' }}>pick a recipe, or add a new one</div>}
 
         {current && !editing && (
           <div>

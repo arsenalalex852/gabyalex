@@ -30,7 +30,7 @@ export default function Scene({ coupleId, myId }: { coupleId: string; myId: stri
   const [frames, setFrames] = useState<Box>(FRAMES)
   const [planner, setPlanner] = useState<Box>(PLANNER_FRAME)
   const [cookbook, setCookbook] = useState<Box>({ src: '/cookbook.png', xPct: 57.5, yPct: 94.7, widthPct: 12 })
-  const [trophy, setTrophy] = useState<Box>({ src: '/trophy.png', xPct: 90.0, yPct: 60.0, widthPct: 8 })
+  const [trophy, setTrophy] = useState<Box>({ src: '/trophy.png', xPct: 68.8, yPct: 92.7, widthPct: 16 })
   // who's currently on the page (live presence)
   const [online, setOnline] = useState<{ alex: boolean; gaby: boolean }>({ alex: isAlex, gaby: !isAlex })
   useEffect(() => {

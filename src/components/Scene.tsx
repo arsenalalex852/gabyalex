@@ -228,7 +228,7 @@ export default function Scene({ coupleId, myId }: { coupleId: string; myId: stri
       <Modal open={open === 'watch'} onClose={() => setOpen(null)} wide><MediaList kind="movies" coupleId={coupleId} myName={myName} /></Modal>
       <Modal open={open === 'brainstorm'} onClose={() => setOpen(null)}><Brainstorm coupleId={coupleId} /></Modal>
       <Modal open={open === 'cookbook'} onClose={() => setOpen(null)} wide><Cookbook coupleId={coupleId} /></Modal>
-      <Modal open={open === 'secondaries'} onClose={() => setOpen(null)} wide><Secondaries coupleId={coupleId} myId={myId} /></Modal>
+      {open === 'secondaries' && <Secondaries coupleId={coupleId} myId={myId} onClose={() => setOpen(null)} />}
       <Modal open={open === 'stretch'} onClose={() => setOpen(null)} wide>
         <div style={{ background: '#14171c', borderRadius: 16, overflow: 'hidden', height: '80vh', boxShadow: '0 24px 60px rgba(0,0,0,.5)' }}>
           <iframe src="/stretch.html" title="stretching" style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} />

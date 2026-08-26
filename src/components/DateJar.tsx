@@ -65,6 +65,13 @@ export default function DateJar({ coupleId, myId }: { coupleId: string; myId: st
     await load(jarId)
     setBusy(false)
   }
+  async function markDone(id: string) {
+    if (!jarId || busy) return
+    setBusy(true)
+    await supabase.from('jar_items').update({ status: 'used' }).eq('id', id)
+    await load(jarId)
+    setBusy(false)
+  }
   async function add() {
     if (!text.trim() || saving) return
     setSaving(true)
@@ -125,6 +132,24 @@ export default function DateJar({ coupleId, myId }: { coupleId: string; myId: st
                   <p style={{ fontSize: 14, color: `${INK}99`, textAlign: 'center', margin: 0, fontFamily: SERIF }}>
                     the jar is empty — add a few ideas first
                   </p>
+                )}
+                {available.length > 0 && (
+                  <div style={{ width: '100%', marginTop: 4 }}>
+                    <div style={{ fontSize: 11.5, color: `${INK}77`, textAlign: 'center', marginBottom: 8, fontFamily: SANS }}>
+                      already did one without drawing? mark it done —
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 160, overflowY: 'auto' }}>
+                      {available.map((d) => (
+                        <div key={d.id} style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+                          background: '#00000008', borderRadius: 10, padding: '9px 12px', fontSize: 13.5, border: `1px solid ${TERRA}1a`,
+                        }}>
+                          <span style={{ color: `${INK}bb`, fontFamily: SERIF }}>{d.content}</span>
+                          <button onClick={() => markDone(d.id)} disabled={busy} style={{ ...tinyBtn, flexShrink: 0, opacity: busy ? .6 : 1 }}>done</button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </>
             )}

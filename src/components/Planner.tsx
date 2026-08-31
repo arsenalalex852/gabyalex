@@ -24,6 +24,8 @@ export default function Planner({ coupleId, myId, onWall = false, stacked = fals
   const [draft, setDraft] = useState<Record<string, string>>({})
   const [dragId, setDragId] = useState<string | null>(null)
   const [overId, setOverId] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editDraft, setEditDraft] = useState('')
 
   async function load() {
     const { data: profs } = await supabase.from('profiles').select('id, display_name').order('created_at')
@@ -55,6 +57,15 @@ export default function Planner({ coupleId, myId, onWall = false, stacked = fals
   async function del(id: string) {
     setItems((arr) => arr.filter((x) => x.id !== id))
     await supabase.from('planner_items').delete().eq('id', id)
+  }
+  function startEdit(it: Item) { setEditingId(it.id); setEditDraft(it.body) }
+  function cancelEdit() { setEditingId(null); setEditDraft('') }
+  async function saveEdit(id: string) {
+    const body = editDraft.trim()
+    setEditingId(null)
+    if (!body) return
+    setItems((arr) => arr.map((x) => (x.id === id ? { ...x, body } : x)))
+    await supabase.from('planner_items').update({ body }).eq('id', id)
   }
 
   // reorder via global pointer tracking (works on mouse + touch)
@@ -165,8 +176,20 @@ export default function Planner({ coupleId, myId, onWall = false, stacked = fals
                             flexShrink: 0, width: 11, height: 11, marginTop: 1, borderRadius: 3, cursor: 'pointer', padding: 0,
                             border: `1.5px solid ${it.done ? color : 'rgba(255,255,255,.3)'}`,
                             background: it.done ? color : 'transparent', color: '#1c140a', fontSize: 8, lineHeight: '8px' }}>{it.done ? '✓' : ''}</button>
-                          <span onClick={() => toggle(it)} style={{ flex: 1, cursor: 'pointer', wordBreak: 'break-word',
-                            textDecoration: it.done ? 'line-through' : 'none', color: it.done ? 'rgba(236,228,211,.4)' : INK }}>{it.body}</span>
+                          {editingId === it.id ? (
+                            <input
+                              autoFocus value={editDraft} onChange={(e) => setEditDraft(e.target.value)}
+                              onBlur={() => saveEdit(it.id)}
+                              onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(it.id); if (e.key === 'Escape') cancelEdit() }}
+                              style={{ flex: 1, minWidth: 0, fontFamily: SANS, fontSize: stacked ? 14 : 11, color: INK, background: 'rgba(255,255,255,.08)',
+                                border: `1px solid ${color}88`, borderRadius: 4, padding: '1px 4px', outline: 'none' }} />
+                          ) : (
+                            <span onClick={() => toggle(it)} style={{ flex: 1, cursor: 'pointer', wordBreak: 'break-word',
+                              textDecoration: it.done ? 'line-through' : 'none', color: it.done ? 'rgba(236,228,211,.4)' : INK }}>{it.body}</span>
+                          )}
+                          {mine && editingId !== it.id && (
+                            <button onClick={() => startEdit(it)} className="pl-del" style={{ flexShrink: 0, border: 'none', background: 'none', cursor: 'pointer', color: 'rgba(236,228,211,.4)', fontSize: stacked ? 12 : 10, lineHeight: 1, padding: 0 }} title="edit">✎</button>
+                          )}
                           {mine && <button onClick={() => del(it.id)} className="pl-del" style={{ flexShrink: 0, border: 'none', background: 'none', cursor: 'pointer', color: 'rgba(236,228,211,.4)', fontSize: 11, lineHeight: 1, padding: 0 }}>×</button>}
                         </div>
                       ))}
